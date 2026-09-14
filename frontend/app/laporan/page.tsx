@@ -13,7 +13,7 @@ export default function LaporanPage() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    fetch(`${API_URL}/keluarga/1/anggota`)
+    fetch(`/api/keluarga/1/anggota`)
       .then(res => res.json())
       .then(data => setAnggotaList(data))
       .catch(err => console.error("Failed to fetch anggota", err));
@@ -22,7 +22,7 @@ export default function LaporanPage() {
   const fetchLaporan = async () => {
     setLoading(true);
     try {
-      let url = `${API_URL}/keluarga/1/laporan?month=${month}&year=${year}`;
+      let url = `/api/keluarga/1/laporan?month=${month}&year=${year}`;
       if (anggotaId) {
         url += `&anggota_id=${anggotaId}`;
       }
@@ -42,7 +42,7 @@ export default function LaporanPage() {
   }, [month, year, anggotaId]);
 
   const handleDownload = () => {
-    let url = `${API_URL}/keluarga/1/laporan/export?month=${month}&year=${year}`;
+    let url = `/api/keluarga/1/laporan/export?month=${month}&year=${year}`;
     if (anggotaId) {
       url += `&anggota_id=${anggotaId}`;
     }

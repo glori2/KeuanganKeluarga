@@ -67,7 +67,7 @@ def create_keluarga(keluarga: schemas.KeluargaCreate, db: Session = Depends(get_
     db.refresh(db_keluarga)
     return db_keluarga
 
-@app.get("/keluarga/", response_model=List[schemas.KeluargaResponse])
+@app.get("/api/keluarga/", response_model=List[schemas.KeluargaResponse])
 def read_keluarga(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     return db.query(models.Keluarga).offset(skip).limit(limit).all()
 
@@ -80,7 +80,7 @@ def create_anggota(anggota: schemas.AnggotaCreate, db: Session = Depends(get_db)
     db.refresh(db_anggota)
     return db_anggota
 
-@app.get("/keluarga/{keluarga_id}/anggota", response_model=List[schemas.AnggotaResponse])
+@app.get("/api/keluarga/{keluarga_id}/anggota", response_model=List[schemas.AnggotaResponse])
 def get_anggota_by_keluarga(keluarga_id: int, db: Session = Depends(get_db)):
     return db.query(models.Anggota).filter(models.Anggota.keluarga_id == keluarga_id).all()
 
@@ -93,7 +93,7 @@ def create_rekening(rekening: schemas.RekeningCreate, db: Session = Depends(get_
     db.refresh(db_rekening)
     return db_rekening
 
-@app.get("/keluarga/{keluarga_id}/rekening", response_model=List[schemas.RekeningResponse])
+@app.get("/api/keluarga/{keluarga_id}/rekening", response_model=List[schemas.RekeningResponse])
 def get_rekening_by_keluarga(keluarga_id: int, db: Session = Depends(get_db)):
     return db.query(models.Rekening).filter(models.Rekening.keluarga_id == keluarga_id).all()
 
@@ -123,7 +123,7 @@ def get_transaksi_by_rekening(rekening_id: int, db: Session = Depends(get_db)):
     return db.query(models.Transaksi).filter(models.Transaksi.rekening_id == rekening_id).all()
 
 # --- Dashboard Endpoints ---
-@app.get("/keluarga/{keluarga_id}/dashboard")
+@app.get("/api/keluarga/{keluarga_id}/dashboard")
 def get_dashboard_summary(keluarga_id: int, db: Session = Depends(get_db)):
     # Calculate total balance
     rekening_list = db.query(models.Rekening).filter(models.Rekening.keluarga_id == keluarga_id).all()
@@ -173,7 +173,7 @@ from fastapi.responses import StreamingResponse
 import io
 import csv
 
-@app.get("/keluarga/{keluarga_id}/laporan")
+@app.get("/api/keluarga/{keluarga_id}/laporan")
 def get_laporan_bulanan(keluarga_id: int, month: int, year: int, anggota_id: int = None, db: Session = Depends(get_db)):
     if anggota_id:
         anggota_ids = [anggota_id]
@@ -207,7 +207,7 @@ def get_laporan_bulanan(keluarga_id: int, month: int, year: int, anggota_id: int
         
     return formatted
 
-@app.get("/keluarga/{keluarga_id}/laporan/export")
+@app.get("/api/keluarga/{keluarga_id}/laporan/export")
 def export_laporan_csv(keluarga_id: int, month: int, year: int, anggota_id: int = None, db: Session = Depends(get_db)):
     if anggota_id:
         anggota_list = db.query(models.Anggota).filter(models.Anggota.keluarga_id == keluarga_id, models.Anggota.id == anggota_id).all()
