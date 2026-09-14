@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from typing import List
 from datetime import datetime
@@ -20,6 +20,31 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+import os
+from telegram import Update
+from telegram.ext import Application, CommandHandler
+import bot
+
+ptb_app = Application.builder().token(os.getenv("TELEGRAM_BOT_TOKEN", "")).build()
+ptb_app.add_handler(CommandHandler("start", bot.start))
+ptb_app.add_handler(CommandHandler("saldo", bot.saldo))
+ptb_app.add_handler(CommandHandler("catat", bot.catat))
+
+import asyncio
+_ptb_initialized = False
+
+@app.post("/api/webhook")
+async def telegram_webhook(req: Request):
+    global _ptb_initialized
+    if not _ptb_initialized:
+        await ptb_app.initialize()
+        _ptb_initialized = True
+    
+    data = await req.json()
+    update = Update.de_json(data, ptb_app.bot)
+    await ptb_app.process_update(update)
+    return {"ok": True}
 
 # Dependency
 def get_db():
