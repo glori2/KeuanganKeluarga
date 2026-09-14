@@ -1,4 +1,4 @@
-const API_URL = "http://localhost:8000";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 export const fetchDashboardData = async (keluargaId: number) => {
   const response = await fetch(`${API_URL}/keluarga/${keluargaId}/dashboard`, { cache: 'no-store' });

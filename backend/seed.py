@@ -1,8 +1,7 @@
 import logging
-from database import SessionLocal, engine
+from database import SessionLocal
 import models
 
-# Setup logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -24,28 +23,23 @@ def seed_data():
         rekening = models.Rekening(
             keluarga_id=keluarga.id,
             name="Dompet Utama",
-            balance=500000.0,
+            balance=0.0,
             type=models.RekeningTypeEnum.cash
         )
         db.add(rekening)
         db.commit()
-        db.refresh(rekening)
-        logger.info(f"Created Rekening: {rekening.name} (ID: {rekening.id}) with initial balance")
+        logger.info(f"Created Rekening: {rekening.name}")
     
-    # Check if Anggota exists
-    anggota = db.query(models.Anggota).filter(models.Anggota.keluarga_id == keluarga.id).first()
-    if not anggota:
-        anggota = models.Anggota(
-            keluarga_id=keluarga.id,
-            name="Admin Keluarga",
-            role=models.RoleEnum.admin,
-            # Placeholder, the user needs to update this with their actual telegram ID later,
-            # or the bot can auto-link the first person to message it.
-        )
-        db.add(anggota)
+    # Check if members exist
+    if db.query(models.Anggota).count() == 0:
+        db.add_all([
+            models.Anggota(keluarga_id=keluarga.id, name="Masruri", telegram_id="884906190", role=models.RoleEnum.admin),
+            models.Anggota(keluarga_id=keluarga.id, name="Muh Masruri - 08562896918", telegram_id="45528063", role=models.RoleEnum.member),
+            models.Anggota(keluarga_id=keluarga.id, name="Rianita - 085600003918", telegram_id=None, role=models.RoleEnum.member),
+            models.Anggota(keluarga_id=keluarga.id, name="Muh Masruri - 08112642340", telegram_id=None, role=models.RoleEnum.member),
+        ])
         db.commit()
-        db.refresh(anggota)
-        logger.info(f"Created Anggota: {anggota.name} (ID: {anggota.id})")
+        logger.info("Seeded 4 members.")
         
     db.close()
     logger.info("Database seeding completed.")
