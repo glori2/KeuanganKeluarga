@@ -124,15 +124,23 @@ def get_dashboard_summary(keluarga_id: int, db: Session = Depends(get_db)):
     ).scalar() or 0.0
     
     # Recent transactions
-    recent = db.query(models.Transaksi).filter(
+    recent = db.query(models.Transaksi, models.Anggota.name.label("anggota_name")).join(
+        models.Anggota, models.Transaksi.anggota_id == models.Anggota.id
+    ).filter(
         models.Transaksi.anggota_id.in_(anggota_ids)
     ).order_by(models.Transaksi.date.desc()).limit(5).all()
+    
+    recent_formatted = []
+    for t, a_name in recent:
+        t_dict = schemas.TransaksiResponse.model_validate(t).model_dump()
+        t_dict["anggota_name"] = a_name
+        recent_formatted.append(t_dict)
     
     return {
         "total_balance": total_balance,
         "total_income": income,
         "total_expense": expense,
-        "recent_transactions": [schemas.TransaksiResponse.model_validate(t) for t in recent]
+        "recent_transactions": recent_formatted
     }
 
 # --- Laporan Endpoints ---
@@ -141,8 +149,12 @@ import io
 import csv
 
 @app.get("/keluarga/{keluarga_id}/laporan")
-def get_laporan_bulanan(keluarga_id: int, month: int, year: int, db: Session = Depends(get_db)):
-    anggota_ids = [a.id for a in db.query(models.Anggota.id).filter(models.Anggota.keluarga_id == keluarga_id).all()]
+def get_laporan_bulanan(keluarga_id: int, month: int, year: int, anggota_id: int = None, db: Session = Depends(get_db)):
+    if anggota_id:
+        anggota_ids = [anggota_id]
+    else:
+        anggota_ids = [a.id for a in db.query(models.Anggota.id).filter(models.Anggota.keluarga_id == keluarga_id).all()]
+        
     if not anggota_ids:
         return []
 
@@ -152,17 +164,31 @@ def get_laporan_bulanan(keluarga_id: int, month: int, year: int, db: Session = D
     start_date = datetime(year, month, 1)
     end_date = datetime(year, month, last_day, 23, 59, 59)
     
-    transactions = db.query(models.Transaksi).filter(
+    query = db.query(models.Transaksi, models.Anggota.name.label("anggota_name")).join(
+        models.Anggota, models.Transaksi.anggota_id == models.Anggota.id
+    ).filter(
         models.Transaksi.anggota_id.in_(anggota_ids),
         models.Transaksi.date >= start_date,
         models.Transaksi.date <= end_date
-    ).order_by(models.Transaksi.date.desc()).all()
+    )
     
-    return [schemas.TransaksiResponse.model_validate(t) for t in transactions]
+    transactions = query.order_by(models.Transaksi.date.desc()).all()
+    
+    formatted = []
+    for t, a_name in transactions:
+        t_dict = schemas.TransaksiResponse.model_validate(t).model_dump()
+        t_dict["anggota_name"] = a_name
+        formatted.append(t_dict)
+        
+    return formatted
 
 @app.get("/keluarga/{keluarga_id}/laporan/export")
-def export_laporan_csv(keluarga_id: int, month: int, year: int, db: Session = Depends(get_db)):
-    anggota_list = db.query(models.Anggota).filter(models.Anggota.keluarga_id == keluarga_id).all()
+def export_laporan_csv(keluarga_id: int, month: int, year: int, anggota_id: int = None, db: Session = Depends(get_db)):
+    if anggota_id:
+        anggota_list = db.query(models.Anggota).filter(models.Anggota.keluarga_id == keluarga_id, models.Anggota.id == anggota_id).all()
+    else:
+        anggota_list = db.query(models.Anggota).filter(models.Anggota.keluarga_id == keluarga_id).all()
+        
     anggota_map = {a.id: a.name for a in anggota_list}
     
     if not anggota_map:
@@ -181,7 +207,7 @@ def export_laporan_csv(keluarga_id: int, month: int, year: int, db: Session = De
     ).order_by(models.Transaksi.date.desc()).all()
     
     output = io.StringIO()
-    writer = csv.writer(output)
+    writer = csv.writer(output, delimiter=";")
     
     # Write header
     writer.writerow(["Tanggal", "Anggota", "Jenis", "Kategori", "Nominal", "Keterangan"])

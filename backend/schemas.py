@@ -61,6 +61,7 @@ class TransaksiResponse(TransaksiBase):
     rekening_id: int
     anggota_id: int
     date: datetime
+    anggota_name: Optional[str] = None
     
     class Config:
         from_attributes = True

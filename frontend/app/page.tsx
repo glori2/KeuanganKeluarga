@@ -57,6 +57,7 @@ export default async function Home() {
                   <div className="flex flex-col">
                     <span className="font-medium text-gray-800">{tx.category}</span>
                     <span className="text-sm text-gray-500">{tx.description || '-'}</span>
+                    <span className="text-xs text-blue-500 mt-1">Oleh: {tx.anggota_name || 'Unknown'}</span>
                   </div>
                   <div className="text-right">
                     <span className={`font-semibold ${tx.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>

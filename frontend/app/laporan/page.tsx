@@ -7,13 +7,26 @@ const API_URL = "http://localhost:8000";
 export default function LaporanPage() {
   const [month, setMonth] = useState(new Date().getMonth() + 1);
   const [year, setYear] = useState(new Date().getFullYear());
+  const [anggotaId, setAnggotaId] = useState("");
+  const [anggotaList, setAnggotaList] = useState([]);
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    fetch(`${API_URL}/keluarga/1/anggota`)
+      .then(res => res.json())
+      .then(data => setAnggotaList(data))
+      .catch(err => console.error("Failed to fetch anggota", err));
+  }, []);
 
   const fetchLaporan = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`${API_URL}/keluarga/1/laporan?month=${month}&year=${year}`);
+      let url = `${API_URL}/keluarga/1/laporan?month=${month}&year=${year}`;
+      if (anggotaId) {
+        url += `&anggota_id=${anggotaId}`;
+      }
+      const response = await fetch(url);
       if (response.ok) {
         const data = await response.json();
         setTransactions(data);
@@ -26,10 +39,14 @@ export default function LaporanPage() {
 
   useEffect(() => {
     fetchLaporan();
-  }, [month, year]);
+  }, [month, year, anggotaId]);
 
   const handleDownload = () => {
-    window.location.href = `${API_URL}/keluarga/1/laporan/export?month=${month}&year=${year}`;
+    let url = `${API_URL}/keluarga/1/laporan/export?month=${month}&year=${year}`;
+    if (anggotaId) {
+      url += `&anggota_id=${anggotaId}`;
+    }
+    window.location.href = url;
   };
 
   return (
@@ -40,7 +57,7 @@ export default function LaporanPage() {
           <a href="/" className="text-blue-600 hover:underline">Kembali ke Dashboard</a>
         </div>
 
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 mb-8 flex items-end gap-4">
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 mb-8 flex flex-wrap items-end gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Bulan</label>
             <select 
@@ -62,6 +79,19 @@ export default function LaporanPage() {
               className="border-gray-300 rounded-lg p-2 border w-24"
             />
           </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Anggota</label>
+            <select 
+              value={anggotaId} 
+              onChange={(e) => setAnggotaId(e.target.value)}
+              className="border-gray-300 rounded-lg p-2 border"
+            >
+              <option value="">Semua Anggota</option>
+              {anggotaList.map((a: any) => (
+                <option key={a.id} value={a.id}>{a.name}</option>
+              ))}
+            </select>
+          </div>
           <button 
             onClick={handleDownload}
             className="ml-auto bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition"
@@ -81,6 +111,7 @@ export default function LaporanPage() {
                 <thead>
                   <tr className="border-b">
                     <th className="pb-3 text-sm font-semibold text-gray-600">Tanggal</th>
+                    <th className="pb-3 text-sm font-semibold text-gray-600">Anggota</th>
                     <th className="pb-3 text-sm font-semibold text-gray-600">Kategori</th>
                     <th className="pb-3 text-sm font-semibold text-gray-600">Keterangan</th>
                     <th className="pb-3 text-sm font-semibold text-gray-600 text-right">Nominal</th>
@@ -90,6 +121,7 @@ export default function LaporanPage() {
                   {transactions.map((tx: any) => (
                     <tr key={tx.id} className="border-b last:border-0 hover:bg-gray-50">
                       <td className="py-3 text-sm text-gray-600">{new Date(tx.date).toLocaleDateString('id-ID')}</td>
+                      <td className="py-3 text-sm text-gray-600">{tx.anggota_name || 'Unknown'}</td>
                       <td className="py-3 text-sm text-gray-800 font-medium">{tx.category}</td>
                       <td className="py-3 text-sm text-gray-500">{tx.description || '-'}</td>
                       <td className={`py-3 text-sm font-semibold text-right ${tx.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
