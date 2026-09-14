@@ -1,5 +1,5 @@
 # Start FastAPI Backend
-Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd frontend/api; python -m uvicorn index:app --port 8000 --reload"
+Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd api; python -m uvicorn index:app --port 8000 --reload"
 
 # Start Frontend
 Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd frontend; npm run dev"
