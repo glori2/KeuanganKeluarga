@@ -1,0 +1,13 @@
+# Python
+backend/venv/
+backend/__pycache__/
+backend/.env
+backend/keuangan.db
+
+# Node
+frontend/node_modules/
+frontend/.next/
+
+# IDEs and OS
+.vscode/
+.DS_Store
