@@ -1,13 +1,9 @@
-# Start FastAPI Backend
-Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd api; python -m uvicorn index:app --port 8000 --reload"
+# Start Keuangan Keluarga Fullstack (Next.js + Webhook + Database)
+Write-Host "=================================================" -ForegroundColor Cyan
+Write-Host " Menyala: Aplikasi Keuangan Keluarga (Fullstack)" -ForegroundColor Green
+Write-Host " Database: Terkoneksi langsung ke Supabase PostgreSQL" -ForegroundColor Yellow
+Write-Host " Webhook: /api/webhook aktif" -ForegroundColor Yellow
+Write-Host " Buka http://localhost:3000 di browser Anda!" -ForegroundColor Cyan
+Write-Host "=================================================" -ForegroundColor Cyan
 
-# Start Telegram Bot Polling (Local Mode)
-Start-Process powershell -ArgumentList "-NoExit", "-Command", "python local_bot.py"
-
-# Start Next.js Frontend
-Start-Process powershell -ArgumentList "-NoExit", "-Command", "npm run dev"
-
-Write-Host "Local Backend API is starting on http://localhost:8000"
-Write-Host "Local Web Dashboard is starting on http://localhost:3000"
-Write-Host "Local Telegram Bot is polling in the background"
-Write-Host "Buka http://localhost:3000 di browser Anda!"
+npm run dev
