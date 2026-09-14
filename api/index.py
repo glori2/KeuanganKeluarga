@@ -26,7 +26,10 @@ from telegram import Update
 from telegram.ext import Application, CommandHandler
 import bot
 
-ptb_app = Application.builder().token(os.getenv("TELEGRAM_BOT_TOKEN", "")).build()
+bot_token = os.getenv("TELEGRAM_BOT_TOKEN", "DUMMY_TOKEN_FOR_BUILD")
+if not bot_token:
+    bot_token = "DUMMY_TOKEN_FOR_BUILD"
+ptb_app = Application.builder().token(bot_token).build()
 ptb_app.add_handler(CommandHandler("start", bot.start))
 ptb_app.add_handler(CommandHandler("saldo", bot.saldo))
 ptb_app.add_handler(CommandHandler("catat", bot.catat))
