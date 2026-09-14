@@ -1,4 +1,4 @@
-import { fetchDashboardData } from './lib/api';
+import { getDashboardData } from './lib/queries';
 
 export const dynamic = 'force-dynamic';
 
@@ -7,10 +7,10 @@ export default async function Home() {
   let error = null;
 
   try {
-    // Assuming keluarga_id = 1 for demo purposes
-    data = await fetchDashboardData(1);
+    data = await getDashboardData(1);
   } catch (err: any) {
-    error = err.message || "Could not connect to backend.";
+    console.error('Dashboard error:', err);
+    error = err.message || "Could not connect to database.";
   }
 
   return (
@@ -24,7 +24,7 @@ export default async function Home() {
         {error && (
           <div className="bg-red-100 text-red-800 p-4 rounded-lg mb-8">
             <p className="font-semibold">Warning: Cannot fetch data</p>
-            <p className="text-sm">{error}. Ensure the FastAPI backend is running on port 8000.</p>
+            <p className="text-sm">{error}</p>
           </div>
         )}
 
@@ -36,13 +36,13 @@ export default async function Home() {
             </p>
           </div>
           <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-            <h2 className="text-gray-500 text-sm font-medium mb-2">Pemasukan Bulan Ini</h2>
+            <h2 className="text-gray-500 text-sm font-medium mb-2">Pemasukan</h2>
             <p className="text-3xl font-bold text-green-600">
               Rp {data?.total_income?.toLocaleString() || '0'}
             </p>
           </div>
           <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-            <h2 className="text-gray-500 text-sm font-medium mb-2">Pengeluaran Bulan Ini</h2>
+            <h2 className="text-gray-500 text-sm font-medium mb-2">Pengeluaran</h2>
             <p className="text-3xl font-bold text-red-600">
               Rp {data?.total_expense?.toLocaleString() || '0'}
             </p>
