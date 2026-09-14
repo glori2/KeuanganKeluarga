@@ -3,9 +3,16 @@ from sqlalchemy.orm import declarative_base
 from sqlalchemy.orm import sessionmaker
 
 import os
-from dotenv import load_dotenv
 
-load_dotenv()
+# On Vercel, env vars come from the dashboard settings.
+# Locally, load from .env file if it exists.
+try:
+    from dotenv import load_dotenv
+    # Try loading .env from the same directory as this file
+    env_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '.env')
+    load_dotenv(env_path)
+except ImportError:
+    pass
 
 SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./keuangan.db")
 
