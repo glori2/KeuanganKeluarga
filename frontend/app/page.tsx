@@ -1,5 +1,7 @@
 import { fetchDashboardData } from './lib/api';
 
+export const dynamic = 'force-dynamic';
+
 export default async function Home() {
   let data = null;
   let error = null;

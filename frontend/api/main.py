@@ -59,7 +59,7 @@ def read_root():
     return {"message": "Welcome to Keuangan Keluarga API"}
 
 # --- Keluarga Endpoints ---
-@app.post("/keluarga/", response_model=schemas.KeluargaResponse)
+@app.post("/api/keluarga/", response_model=schemas.KeluargaResponse)
 def create_keluarga(keluarga: schemas.KeluargaCreate, db: Session = Depends(get_db)):
     db_keluarga = models.Keluarga(**keluarga.model_dump())
     db.add(db_keluarga)
@@ -72,7 +72,7 @@ def read_keluarga(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)
     return db.query(models.Keluarga).offset(skip).limit(limit).all()
 
 # --- Anggota Endpoints ---
-@app.post("/anggota/", response_model=schemas.AnggotaResponse)
+@app.post("/api/anggota/", response_model=schemas.AnggotaResponse)
 def create_anggota(anggota: schemas.AnggotaCreate, db: Session = Depends(get_db)):
     db_anggota = models.Anggota(**anggota.model_dump())
     db.add(db_anggota)
@@ -85,7 +85,7 @@ def get_anggota_by_keluarga(keluarga_id: int, db: Session = Depends(get_db)):
     return db.query(models.Anggota).filter(models.Anggota.keluarga_id == keluarga_id).all()
 
 # --- Rekening Endpoints ---
-@app.post("/rekening/", response_model=schemas.RekeningResponse)
+@app.post("/api/rekening/", response_model=schemas.RekeningResponse)
 def create_rekening(rekening: schemas.RekeningCreate, db: Session = Depends(get_db)):
     db_rekening = models.Rekening(**rekening.model_dump())
     db.add(db_rekening)
@@ -98,7 +98,7 @@ def get_rekening_by_keluarga(keluarga_id: int, db: Session = Depends(get_db)):
     return db.query(models.Rekening).filter(models.Rekening.keluarga_id == keluarga_id).all()
 
 # --- Transaksi Endpoints ---
-@app.post("/transaksi/", response_model=schemas.TransaksiResponse)
+@app.post("/api/transaksi/", response_model=schemas.TransaksiResponse)
 def create_transaksi(transaksi: schemas.TransaksiCreate, db: Session = Depends(get_db)):
     # Verify rekening
     rekening = db.query(models.Rekening).filter(models.Rekening.id == transaksi.rekening_id).first()
@@ -118,7 +118,7 @@ def create_transaksi(transaksi: schemas.TransaksiCreate, db: Session = Depends(g
     db.refresh(db_transaksi)
     return db_transaksi
 
-@app.get("/rekening/{rekening_id}/transaksi", response_model=List[schemas.TransaksiResponse])
+@app.get("/api/rekening/{rekening_id}/transaksi", response_model=List[schemas.TransaksiResponse])
 def get_transaksi_by_rekening(rekening_id: int, db: Session = Depends(get_db)):
     return db.query(models.Transaksi).filter(models.Transaksi.rekening_id == rekening_id).all()
 
