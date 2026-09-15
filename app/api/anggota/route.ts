@@ -1,32 +1,60 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAnggota, getAnggotaByKeluarga } from '../../lib/queries';
+import { CreateAnggotaSchema } from '../../lib/validations';
+import { getUserFamily } from '../../lib/auth';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
-    const { searchParams } = new URL(request.url);
-    const keluargaId = Number(searchParams.get('keluarga_id') || 1);
-    const list = await getAnggotaByKeluarga(keluargaId);
+    const ctx = await getUserFamily();
+    if (!ctx) {
+      return NextResponse.json(
+        { error: 'Autentikasi diperlukan. Silakan masuk terlebih dahulu.' },
+        { status: 401 }
+      );
+    }
+
+    const list = await getAnggotaByKeluarga(ctx.keluarga.id);
     return NextResponse.json(list);
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error('Error fetching anggota list:', error);
+    return NextResponse.json(
+      { error: 'Gagal mengambil data anggota.' },
+      { status: 500 }
+    );
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { keluarga_id = 1, name, telegram_id, role = 'member' } = body;
-
-    if (!name || name.trim() === '') {
-      return NextResponse.json({ error: 'Nama anggota wajib diisi' }, { status: 400 });
+    const ctx = await getUserFamily();
+    if (!ctx) {
+      return NextResponse.json(
+        { error: 'Autentikasi diperlukan. Silakan masuk terlebih dahulu.' },
+        { status: 401 }
+      );
     }
 
-    const created = await createAnggota(Number(keluarga_id), name.trim(), telegram_id, role);
+    const rawBody = await request.json();
+    const parsed = CreateAnggotaSchema.safeParse(rawBody);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: 'Validasi anggota gagal', details: parsed.error.issues.map(i => i.message) },
+        { status: 422 }
+      );
+    }
+
+    const { name, telegram_id, role } = parsed.data;
+
+    // Never trust client family ID - inject from session
+    const created = await createAnggota(ctx.keluarga.id, name, telegram_id, role);
     return NextResponse.json(created, { status: 201 });
   } catch (error: any) {
     console.error('Error creating anggota:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Gagal menambahkan anggota.' },
+      { status: 500 }
+    );
   }
 }

@@ -17,9 +17,12 @@ function sanitizeDatabaseUrl(url: string): string {
 
 function getSql(): postgres.Sql {
   if (!_sql) {
-    const rawUrl =
-      process.env.DATABASE_URL ||
-      'postgresql://postgres:postgres@localhost:5432/postgres';
+    const rawUrl = process.env.DATABASE_URL;
+    if (!rawUrl) {
+      throw new Error(
+        'DATABASE_URL environment variable is not configured. Please define DATABASE_URL in Vercel project settings.'
+      );
+    }
     const connectionString = sanitizeDatabaseUrl(rawUrl);
 
     _sql = postgres(connectionString, {
@@ -36,7 +39,7 @@ function getSql(): postgres.Sql {
 const sql = new Proxy(function () {} as unknown as postgres.Sql, {
   apply(_target, _thisArg, argArray) {
     const client = getSql();
-    return Reflect.apply(client as unknown as Function, client, argArray);
+    return Reflect.apply(client as unknown as (...args: unknown[]) => unknown, client, argArray);
   },
   get(_target, prop, receiver) {
     const client = getSql();

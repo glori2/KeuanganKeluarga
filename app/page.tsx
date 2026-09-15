@@ -1,18 +1,32 @@
-import { getDashboardData } from './lib/queries';
+﻿import { getDashboardData } from './lib/queries';
+import { getUserFamily } from './lib/auth';
 import TransaksiList from './components/TransaksiList';
+import { DashboardData } from './lib/types';
+import { formatRupiah } from './lib/format';
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 
 export const dynamic = 'force-dynamic';
 
 export default async function Home() {
-  let data: any = null;
+  let data: DashboardData | null = null;
+  let familyName: string = 'Keluarga';
   let error: string | null = null;
 
   try {
-    data = await getDashboardData(1);
-  } catch (err: any) {
+    const ctx = await getUserFamily();
+    if (!ctx) {
+      redirect('/login');
+    }
+    familyName = ctx.keluarga.name;
+    data = await getDashboardData(ctx.keluarga.id);
+  } catch (err: unknown) {
+    // Next.js redirect throws NEXT_REDIRECT which must not be caught as error
+    if (err && typeof err === 'object' && 'digest' in err && typeof (err as { digest: string }).digest === 'string' && (err as { digest: string }).digest.startsWith('NEXT_REDIRECT')) {
+      throw err;
+    }
     console.error('Dashboard error:', err);
-    error = err.message || 'Tidak dapat terhubung ke database Supabase.';
+    error = 'Tidak dapat memuat data dasbor saat ini.';
   }
 
   return (
@@ -20,9 +34,14 @@ export default async function Home() {
       {/* Header Dashboard */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
-            Dasbor Keuangan Keluarga
-          </h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
+              Dasbor {familyName}
+            </h1>
+            <span className="text-xs bg-blue-100 text-blue-800 font-bold px-2.5 py-0.5 rounded-full">
+              Keluarga Terverifikasi
+            </span>
+          </div>
           <p className="text-sm text-gray-500 mt-1">
             Pantau arus kas, saldo dompet, dan catatan pengeluaran keluarga secara real-time.
           </p>
@@ -64,7 +83,7 @@ export default async function Home() {
               <span className="p-2 bg-blue-50 text-blue-600 rounded-xl text-sm">💰</span>
             </div>
             <p className="text-2xl sm:text-3xl font-extrabold text-gray-900 mt-3">
-              Rp {data?.total_balance?.toLocaleString('id-ID') || '0'}
+              {formatRupiah(data?.total_balance || 0)}
             </p>
           </div>
           <p className="text-xs text-gray-400 mt-3">
@@ -81,10 +100,10 @@ export default async function Home() {
               <span className="p-2 bg-emerald-50 text-emerald-600 rounded-xl text-sm">📈</span>
             </div>
             <p className="text-2xl sm:text-3xl font-extrabold text-emerald-600 mt-3">
-              + Rp {data?.total_income?.toLocaleString('id-ID') || '0'}
+              + {formatRupiah(data?.total_income || 0)}
             </p>
           </div>
-          <p className="text-xs text-gray-400 mt-3">Semua catatan kas masuk</p>
+          <p className="text-xs text-gray-400 mt-3">Semua catatan kas masuk aktif</p>
         </div>
 
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-between">
@@ -96,10 +115,10 @@ export default async function Home() {
               <span className="p-2 bg-rose-50 text-rose-600 rounded-xl text-sm">📉</span>
             </div>
             <p className="text-2xl sm:text-3xl font-extrabold text-rose-600 mt-3">
-              - Rp {data?.total_expense?.toLocaleString('id-ID') || '0'}
+              - {formatRupiah(data?.total_expense || 0)}
             </p>
           </div>
-          <p className="text-xs text-gray-400 mt-3">Semua catatan kas keluar</p>
+          <p className="text-xs text-gray-400 mt-3">Semua catatan kas keluar aktif</p>
         </div>
       </div>
 
@@ -113,7 +132,7 @@ export default async function Home() {
             </Link>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
-            {data.rekening_list.map((r: any) => (
+            {data.rekening_list.map((r) => (
               <div key={r.id} className="p-4 bg-gray-50/75 rounded-xl border border-gray-100">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-medium text-gray-500 uppercase">{r.type}</span>
@@ -121,7 +140,7 @@ export default async function Home() {
                 </div>
                 <h3 className="font-bold text-gray-800 mt-1">{r.name}</h3>
                 <p className="text-base font-semibold text-blue-600 mt-1">
-                  Rp {r.balance.toLocaleString('id-ID')}
+                  {formatRupiah(r.balance)}
                 </p>
               </div>
             ))}
@@ -129,7 +148,7 @@ export default async function Home() {
         </div>
       )}
 
-      {/* Tabel Transaksi dengan Aksi CRUD */}
+      {/* Tabel Transaksi dengan Aksi CRUD & Audit */}
       <TransaksiList
         initialTransactions={data?.recent_transactions || []}
         anggotaList={data?.anggota_list || []}
@@ -160,7 +179,7 @@ export default async function Home() {
             href="/anggota"
             className="bg-white text-blue-700 font-bold px-4 py-2.5 rounded-xl text-xs hover:bg-blue-50 transition shadow whitespace-nowrap"
           >
-            Tautkan ID Telegram Anggota →
+            Tautkan Akun Telegram Anggota →
           </Link>
         </div>
       </div>
