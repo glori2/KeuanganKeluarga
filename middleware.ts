@@ -41,13 +41,21 @@ export async function middleware(request: NextRequest) {
     request.nextUrl.pathname.startsWith('/login') ||
     request.nextUrl.pathname.startsWith('/register');
   const isPublicApi =
+    request.nextUrl.pathname.startsWith('/api/auth') ||
     request.nextUrl.pathname.startsWith('/api/webhook') ||
     request.nextUrl.pathname.startsWith('/_next') ||
     request.nextUrl.pathname.startsWith('/favicon.ico') ||
     request.nextUrl.pathname.startsWith('/public');
 
-  // If user is not signed in and tries to access protected page
+  // If user is not signed in and tries to access protected page or api
   if (!user && !isAuthPage && !isPublicApi) {
+    // If it's an API request, return JSON 401 instead of HTML redirect to /login
+    if (request.nextUrl.pathname.startsWith('/api/')) {
+      return NextResponse.json(
+        { error: 'Autentikasi diperlukan. Silakan masuk terlebih dahulu.' },
+        { status: 401 }
+      );
+    }
     const url = request.nextUrl.clone();
     url.pathname = '/login';
     return NextResponse.redirect(url);

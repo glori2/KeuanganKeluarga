@@ -37,7 +37,7 @@ TypeError: Invalid URL
   code: 'ERR_INVALID_URL'
 Error: Failed to collect page data for /api/anggota/[id]
 ```
-Furthermore, the user database password contained a trailing `#` (`Muhmasru0808#`), which in RFC 3986 URI parsing acts as a fragment/hash delimiter, stripping host and port.
+Furthermore, the user database password contained a trailing `#`, which in RFC 3986 URI parsing acts as a fragment/hash delimiter, stripping host and port.
 
 ### Verified Remediation in `app/lib/db.ts`
 1. **Lazy Proxy Pattern:** Module evaluation during `next build` / static page collection never instantiates PostgreSQL connections or parses empty environment variables.

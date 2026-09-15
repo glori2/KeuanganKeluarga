@@ -62,8 +62,20 @@ export default function RegisterPage() {
       });
 
       if (!res.ok) {
-        const d = await res.json();
-        console.warn('Onboarding note:', d.error);
+        let errorMsg = 'Gagal inisialisasi akun keluarga.';
+        try {
+          const contentType = res.headers.get('content-type') || '';
+          if (contentType.includes('application/json')) {
+            const d = await res.json();
+            if (d?.error) errorMsg = d.error;
+          } else {
+            const text = await res.text();
+            if (text) console.warn('Non-JSON onboarding response:', text);
+          }
+        } catch {
+          // Ignore parsing errors for non-blocking note
+        }
+        console.warn('Onboarding note:', errorMsg);
       }
 
       router.push('/');
@@ -73,6 +85,8 @@ export default function RegisterPage() {
       if (message === 'Failed to fetch' || message.toLowerCase().includes('fetch')) {
         message =
           'Registrasi gagal. Server autentikasi tidak dapat dihubungi (Failed to fetch). Pastikan koneksi internet stabil dan variabel NEXT_PUBLIC_SUPABASE_URL sudah aktif di Vercel.';
+      } else if (message.includes('Unexpected end of JSON input') || message.includes('Failed to execute \'json\'')) {
+        message = 'Registrasi gagal. Server mengembalikan response yang tidak valid.';
       }
       setError(message);
     } finally {
