@@ -2,11 +2,25 @@ import postgres from 'postgres';
 
 let _sql: postgres.Sql | null = null;
 
+function sanitizeDatabaseUrl(url: string): string {
+  if (!url) return url;
+  const match = url.match(/^(postgres(?:ql)?:\/\/)([^:]+):([^@]+)@(.+)$/);
+  if (match) {
+    const [, protocol, user, pass, rest] = match;
+    if (pass.includes('#') && !pass.includes('%23')) {
+      const encodedPass = pass.replace(/#/g, '%23');
+      return `${protocol}${user}:${encodedPass}@${rest}`;
+    }
+  }
+  return url;
+}
+
 function getSql(): postgres.Sql {
   if (!_sql) {
-    const connectionString =
+    const rawUrl =
       process.env.DATABASE_URL ||
       'postgresql://postgres:postgres@localhost:5432/postgres';
+    const connectionString = sanitizeDatabaseUrl(rawUrl);
 
     _sql = postgres(connectionString, {
       ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : undefined,
