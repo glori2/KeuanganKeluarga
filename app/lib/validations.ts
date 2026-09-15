@@ -71,6 +71,7 @@ export const CreateAnggotaSchema = z.object({
     .optional()
     .or(z.literal('').transform(() => null)),
   role: z.enum(['admin', 'member']).default('member'),
+  confirm_duplicate: z.boolean().optional().default(false),
 });
 
 export const UpdateAnggotaSchema = z.object({
@@ -90,5 +91,30 @@ export const TelegramLinkCodeSchema = z.object({
   anggota_id: z.number({
     error: 'ID Anggota wajib diisi dan berupa angka'
   }).int('ID Anggota harus bilangan bulat').positive('ID Anggota harus bernilai positif'),
+});
+
+export const CheckDuplicateFamilySchema = z.object({
+  familyName: z
+    .string({
+      error: 'Nama keluarga wajib diisi'
+    })
+    .trim()
+    .min(2, 'Nama keluarga minimal 2 karakter')
+    .max(100, 'Nama keluarga maksimal 100 karakter'),
+});
+
+export const CreateInvitationSchema = z.object({
+  target_role: z.enum(['admin', 'member']).default('member'),
+  target_anggota_id: z.number().int().positive().nullable().optional(),
+});
+
+export const AcceptInvitationSchema = z.object({
+  code: z
+    .string({
+      error: 'Kode undangan wajib diisi'
+    })
+    .trim()
+    .min(6, 'Kode undangan minimal 6 karakter')
+    .max(32, 'Kode undangan maksimal 32 karakter'),
 });
 

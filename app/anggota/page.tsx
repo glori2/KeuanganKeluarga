@@ -4,12 +4,15 @@ import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { Anggota, MemberRole } from '../lib/types';
 import TelegramLinkModal from '../components/TelegramLinkModal';
+import InvitationModal from '../components/InvitationModal';
 
 export default function AnggotaPage() {
   const [anggotaList, setAnggotaList] = useState<Anggota[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isTelegramModalOpen, setIsTelegramModalOpen] = useState(false);
+  const [isInvitationModalOpen, setIsInvitationModalOpen] = useState(false);
+  const [duplicateWarning, setDuplicateWarning] = useState<string | null>(null);
   const [telegramTargetAnggota, setTelegramTargetAnggota] = useState<Anggota | null>(null);
   const [selectedAnggota, setSelectedAnggota] = useState<Anggota | null>(null);
   const [name, setName] = useState('');
@@ -49,11 +52,12 @@ export default function AnggotaPage() {
       setRole('member');
     }
     setError('');
+    setDuplicateWarning(null);
     setIsModalOpen(true);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (e?: React.FormEvent, forceDuplicate = false) => {
+    if (e) e.preventDefault();
     if (!name.trim()) {
       setError('Nama anggota wajib diisi');
       return;
@@ -66,26 +70,39 @@ export default function AnggotaPage() {
 
     setSaving(true);
     setError('');
+    if (!forceDuplicate) setDuplicateWarning(null);
 
     try {
       const url = selectedAnggota ? `/api/anggota/${selectedAnggota.id}` : '/api/anggota';
       const method = selectedAnggota ? 'PUT' : 'POST';
 
+      const payload: { name: string; telegram_id: string | null; role: MemberRole; confirm_duplicate?: boolean } = {
+        name: name.trim(),
+        telegram_id: telegramId.trim() || null,
+        role,
+      };
+
+      if (!selectedAnggota && forceDuplicate) {
+        payload.confirm_duplicate = true;
+      }
+
       const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: name.trim(),
-          telegram_id: telegramId.trim() || null,
-          role,
-        }),
+        body: JSON.stringify(payload),
       });
 
       if (!res.ok) {
         const d = await res.json();
+        if (res.status === 409 && d.requires_confirmation) {
+          setDuplicateWarning(d.message);
+          setSaving(false);
+          return;
+        }
         throw new Error(d.error || 'Gagal menyimpan anggota');
       }
 
+      setDuplicateWarning(null);
       setIsModalOpen(false);
       fetchAnggota();
     } catch (err: unknown) {
@@ -137,6 +154,12 @@ export default function AnggotaPage() {
           >
             ← Kembali
           </Link>
+          <button
+            onClick={() => setIsInvitationModalOpen(true)}
+            className="bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-4 py-2 rounded-xl text-sm transition shadow-sm flex items-center gap-1.5"
+          >
+            <span>✉️</span> Undang Anggota
+          </button>
           <button
             onClick={() => {
               setTelegramTargetAnggota(null);
@@ -300,10 +323,38 @@ export default function AnggotaPage() {
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="p-6 space-y-4">
+            <form onSubmit={(e) => handleSubmit(e)} className="p-6 space-y-4">
               {error && (
                 <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-xs">
                   {error}
+                </div>
+              )}
+
+              {duplicateWarning && (
+                <div className="p-3 bg-amber-50 border border-amber-200 text-amber-800 rounded-xl text-xs space-y-2">
+                  <div className="flex items-start gap-1.5">
+                    <span className="text-base leading-none">⚠️</span>
+                    <div>
+                      <p className="font-semibold">Kemungkinan Duplikasi Nama Anggota:</p>
+                      <p className="mt-0.5">{duplicateWarning}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 pt-1 border-t border-amber-200/60">
+                    <button
+                      type="button"
+                      onClick={() => handleSubmit(undefined, true)}
+                      className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-semibold transition"
+                    >
+                      Tetap Buat Anggota Baru
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDuplicateWarning(null)}
+                      className="px-3 py-1.5 bg-white border border-amber-300 hover:bg-amber-100/50 text-amber-800 rounded-lg text-xs font-semibold transition"
+                    >
+                      Batal
+                    </button>
+                  </div>
                 </div>
               )}
 
@@ -389,6 +440,16 @@ export default function AnggotaPage() {
           fetchAnggota();
         }}
         targetAnggota={telegramTargetAnggota}
+        anggotaList={anggotaList}
+      />
+
+      {/* Family Invitation Modal */}
+      <InvitationModal
+        isOpen={isInvitationModalOpen}
+        onClose={() => {
+          setIsInvitationModalOpen(false);
+          fetchAnggota();
+        }}
         anggotaList={anggotaList}
       />
     </main>
