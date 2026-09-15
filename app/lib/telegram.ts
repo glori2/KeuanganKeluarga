@@ -135,12 +135,54 @@ export async function linkTelegramAccount(
       return { success: false, message: 'Profil anggota tidak ditemukan.' };
     }
 
-    // 3. Unlink any previous member linked to this telegram_id
-    await sqlTx`
-      UPDATE anggota 
-      SET telegram_id = NULL, telegram_chat_id = NULL 
-      WHERE telegram_id = ${telegramId} AND id != ${targetAnggota.id}
+    // 3. Check if this telegramId is already linked to any member
+    const [existingLink] = await sqlTx`
+      SELECT a.id, a.name, a.keluarga_id, k.name as keluarga_name
+      FROM anggota a
+      JOIN keluarga k ON a.keluarga_id = k.id
+      WHERE a.telegram_id = ${telegramId}
+      FOR UPDATE
     `;
+
+    if (existingLink) {
+      if (existingLink.id === targetAnggota.id) {
+        // Already linked to this exact member profile - update chat_id if provided
+        const chatIdVal = chatId ? String(chatId) : null;
+        if (chatIdVal) {
+          await sqlTx`
+            UPDATE anggota 
+            SET telegram_chat_id = ${chatIdVal}::bigint
+            WHERE id = ${targetAnggota.id}
+          `;
+        }
+        // Mark code as used
+        await sqlTx`
+          UPDATE telegram_link_codes
+          SET used_at = NOW()
+          WHERE id = ${codeRow.id}
+        `;
+        return {
+          success: true,
+          message: `Akun Telegram Anda sudah terhubung ke profil "${targetAnggota.name}".`,
+          anggota: targetAnggota,
+        };
+      }
+
+      // Already linked to ANOTHER member: REJECT (No silent reassignment!)
+      // Check family boundary to prevent cross-family member leakage
+      if (existingLink.keluarga_id === targetAnggota.keluarga_id) {
+        return {
+          success: false,
+          message: `Akun Telegram ini sudah terhubung ke anggota "${existingLink.name}". Silakan gunakan perintah /unlink terlebih dahulu di Telegram sebelum menautkannya ke anggota lain.`,
+        };
+      } else {
+        // Cross-family sanitized response: do not leak Family A member name to Family B
+        return {
+          success: false,
+          message: `Akun Telegram ini sudah terhubung ke profil keluarga lain. Silakan gunakan perintah /unlink terlebih dahulu sebelum menautkannya ke akun keluarga baru.`,
+        };
+      }
+    }
 
     // 4. Bind telegram_id and optional telegram_chat_id to target anggota
     const chatIdVal = chatId ? String(chatId) : null;

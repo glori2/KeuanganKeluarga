@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
@@ -10,6 +10,7 @@ export default function AnggotaPage() {
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isTelegramModalOpen, setIsTelegramModalOpen] = useState(false);
+  const [telegramTargetAnggota, setTelegramTargetAnggota] = useState<Anggota | null>(null);
   const [selectedAnggota, setSelectedAnggota] = useState<Anggota | null>(null);
   const [name, setName] = useState('');
   const [telegramId, setTelegramId] = useState('');
@@ -55,6 +56,11 @@ export default function AnggotaPage() {
     e.preventDefault();
     if (!name.trim()) {
       setError('Nama anggota wajib diisi');
+      return;
+    }
+
+    if (telegramId.trim() && !/^\d+$/.test(telegramId.trim())) {
+      setError('Telegram User ID harus berupa angka saja (contoh: 123456789). Jangan gunakan @username.');
       return;
     }
 
@@ -132,7 +138,10 @@ export default function AnggotaPage() {
             ← Kembali
           </Link>
           <button
-            onClick={() => setIsTelegramModalOpen(true)}
+            onClick={() => {
+              setTelegramTargetAnggota(null);
+              setIsTelegramModalOpen(true);
+            }}
             className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-4 py-2 rounded-xl text-sm transition shadow-sm flex items-center gap-1.5"
           >
             <span>🤖</span> Kode OTP Telegram
@@ -159,7 +168,10 @@ export default function AnggotaPage() {
             </div>
           </div>
           <button
-            onClick={() => setIsTelegramModalOpen(true)}
+            onClick={() => {
+              setTelegramTargetAnggota(null);
+              setIsTelegramModalOpen(true);
+            }}
             className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2 rounded-xl text-xs transition shadow-sm whitespace-nowrap"
           >
             🔑 Buat Kode Link OTP Sekarang
@@ -223,6 +235,17 @@ export default function AnggotaPage() {
                     </td>
                     <td className="py-4 px-6 text-right">
                       <div className="flex items-center justify-end gap-2">
+                        <button
+                          onClick={() => {
+                            setTelegramTargetAnggota(a);
+                            setIsTelegramModalOpen(true);
+                          }}
+                          className="px-2.5 py-1.5 text-xs font-semibold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-xl transition flex items-center gap-1 shadow-xs"
+                          title={`Tautkan Telegram untuk ${a.name}`}
+                        >
+                          <span>🤖</span>
+                          <span>{a.telegram_id ? 'Taut Ulang' : 'Tautkan Telegram'}</span>
+                        </button>
                         <button
                           onClick={() => openModal(a)}
                           className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition"
@@ -360,7 +383,13 @@ export default function AnggotaPage() {
       {/* Telegram Link OTP Modal */}
       <TelegramLinkModal
         isOpen={isTelegramModalOpen}
-        onClose={() => setIsTelegramModalOpen(false)}
+        onClose={() => {
+          setIsTelegramModalOpen(false);
+          setTelegramTargetAnggota(null);
+          fetchAnggota();
+        }}
+        targetAnggota={telegramTargetAnggota}
+        anggotaList={anggotaList}
       />
     </main>
   );

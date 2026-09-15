@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedUser, getUserFamily } from '../../../lib/auth';
 import { generateTelegramLinkCode } from '../../../lib/telegram';
+import { TelegramLinkCodeSchema } from '../../../lib/validations';
 import sql from '../../../lib/db';
 
 export const dynamic = 'force-dynamic';
@@ -8,28 +9,39 @@ export const dynamic = 'force-dynamic';
 export async function POST(request: NextRequest) {
   const user = await getAuthenticatedUser();
   if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return NextResponse.json({ error: 'Unauthorized: Autentikasi diperlukan.' }, { status: 401 });
   }
 
   const family = await getUserFamily();
   if (!family) {
-    return NextResponse.json({ error: 'Forbidden: No family associated' }, { status: 403 });
+    return NextResponse.json({ error: 'Forbidden: Tidak ada keluarga terhubung.' }, { status: 403 });
   }
 
   try {
-    let targetAnggotaId = family.anggota.id;
-
-    // Check if body specifies a particular anggota_id
+    let rawBody;
     try {
-      const body = await request.json();
-      if (body?.anggota_id) {
-        targetAnggotaId = Number(body.anggota_id);
-      }
+      rawBody = await request.json();
     } catch {
-      // Empty body is acceptable, defaults to current user's anggota
+      return NextResponse.json(
+        { error: 'Format request body tidak valid. Wajib menyertakan JSON dengan anggota_id.' },
+        { status: 400 }
+      );
     }
 
-    // Verify target anggota belongs to this user's family
+    const parsed = TelegramLinkCodeSchema.safeParse(rawBody);
+    if (!parsed.success) {
+      return NextResponse.json(
+        {
+          error: 'Validasi anggota_id gagal',
+          details: parsed.error.issues.map(i => i.message),
+        },
+        { status: 400 }
+      );
+    }
+
+    const targetAnggotaId = parsed.data.anggota_id;
+
+    // Verify target anggota belongs strictly to this user's family
     const [targetAnggota] = await sql`
       SELECT id, name, keluarga_id 
       FROM anggota 
@@ -38,7 +50,7 @@ export async function POST(request: NextRequest) {
 
     if (!targetAnggota) {
       return NextResponse.json(
-        { error: 'Forbidden: Anggota not found or does not belong to your family' },
+        { error: 'Forbidden: Anggota tidak ditemukan atau bukan bagian dari keluarga Anda.' },
         { status: 403 }
       );
     }
@@ -56,9 +68,10 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error('Error generating telegram link code:', error);
     return NextResponse.json(
-      { error: error?.message || 'Failed to generate linking code' },
+      { error: error?.message || 'Gagal membuat kode tautan Telegram' },
       { status: 500 }
     );
   }
 }
+
 

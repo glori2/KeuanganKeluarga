@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { updateAnggota, deleteAnggota } from '../../../lib/queries';
 import { getUserFamily } from '../../../lib/auth';
+import { UpdateAnggotaSchema } from '../../../lib/validations';
 import sql from '../../../lib/db';
 
 export const dynamic = 'force-dynamic';
@@ -36,11 +37,15 @@ export async function PUT(
     }
 
     const body = await request.json();
-    const { name, telegram_id, role } = body;
-
-    if (!name || name.trim() === '') {
-      return NextResponse.json({ error: 'Nama anggota wajib diisi' }, { status: 422 });
+    const parsed = UpdateAnggotaSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: 'Validasi anggota gagal', details: parsed.error.issues.map(i => i.message) },
+        { status: 422 }
+      );
     }
+
+    const { name, telegram_id, role } = parsed.data;
 
     const updated = await updateAnggota(aId, name.trim(), telegram_id, role);
     return NextResponse.json(updated);

@@ -62,6 +62,33 @@ export const CreateRekeningSchema = z.object({
 export const CreateAnggotaSchema = z.object({
   keluarga_id: z.number().int().positive().optional(),
   name: z.string().trim().min(1, 'Nama anggota wajib diisi').max(100),
-  telegram_id: z.string().trim().max(50).nullable().optional(),
+  telegram_id: z
+    .string()
+    .trim()
+    .regex(/^\d+$/, 'Telegram User ID harus berupa angka (contoh: 123456789)')
+    .max(50)
+    .nullable()
+    .optional()
+    .or(z.literal('').transform(() => null)),
   role: z.enum(['admin', 'member']).default('member'),
 });
+
+export const UpdateAnggotaSchema = z.object({
+  name: z.string().trim().min(1, 'Nama anggota wajib diisi').max(100),
+  telegram_id: z
+    .string()
+    .trim()
+    .regex(/^\d+$/, 'Telegram User ID harus berupa angka (contoh: 123456789)')
+    .max(50)
+    .nullable()
+    .optional()
+    .or(z.literal('').transform(() => null)),
+  role: z.enum(['admin', 'member']).optional(),
+});
+
+export const TelegramLinkCodeSchema = z.object({
+  anggota_id: z.number({
+    error: 'ID Anggota wajib diisi dan berupa angka'
+  }).int('ID Anggota harus bilangan bulat').positive('ID Anggota harus bernilai positif'),
+});
+

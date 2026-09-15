@@ -60,11 +60,41 @@ async function linkTelegram(rawCode, telegramId, chatId) {
       return { success: false, message: 'Profil anggota tidak ditemukan.' };
     }
 
-    await sqlTx`
-      UPDATE anggota 
-      SET telegram_id = NULL, telegram_chat_id = NULL 
-      WHERE telegram_id = ${telegramId} AND id != ${targetAnggota.id}
+    // Anti-reassignment check
+    const [existingLink] = await sqlTx`
+      SELECT a.id, a.name, a.keluarga_id, k.name as keluarga_name
+      FROM anggota a
+      JOIN keluarga k ON a.keluarga_id = k.id
+      WHERE a.telegram_id = ${telegramId}
+      FOR UPDATE
     `;
+
+    if (existingLink) {
+      if (existingLink.id === targetAnggota.id) {
+        const chatIdVal = chatId ? BigInt(chatId) : null;
+        if (chatIdVal) {
+          await sqlTx`
+            UPDATE anggota 
+            SET telegram_chat_id = ${chatIdVal}
+            WHERE id = ${targetAnggota.id}
+          `;
+        }
+        await sqlTx`UPDATE telegram_link_codes SET used_at = NOW() WHERE id = ${codeRow.id}`;
+        return { success: true, message: `Sudah terhubung ke ${targetAnggota.name}`, anggota: targetAnggota };
+      }
+
+      if (existingLink.keluarga_id === targetAnggota.keluarga_id) {
+        return {
+          success: false,
+          message: `Akun Telegram ini sudah terhubung ke anggota "${existingLink.name}". Silakan gunakan perintah /unlink terlebih dahulu.`,
+        };
+      } else {
+        return {
+          success: false,
+          message: `Akun Telegram ini sudah terhubung ke profil keluarga lain. Silakan gunakan perintah /unlink terlebih dahulu.`,
+        };
+      }
+    }
 
     const chatIdVal = chatId ? BigInt(chatId) : null;
     await sqlTx`
