@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -19,6 +19,15 @@ export default function RegisterPage() {
     e.preventDefault();
     setLoading(true);
     setError('');
+
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+    if (!supabaseUrl || supabaseUrl.includes('placeholder.supabase.co')) {
+      setError(
+        'Konfigurasi server belum lengkap: NEXT_PUBLIC_SUPABASE_URL belum disetel di Vercel. Silakan tambahkan Environment Variable di Vercel Dashboard lalu Redeploy.'
+      );
+      setLoading(false);
+      return;
+    }
 
     try {
       // 1. Sign up user via Supabase Auth
@@ -60,7 +69,11 @@ export default function RegisterPage() {
       router.push('/');
       router.refresh();
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Terjadi kesalahan saat pendaftaran.';
+      let message = err instanceof Error ? err.message : 'Terjadi kesalahan saat pendaftaran.';
+      if (message === 'Failed to fetch' || message.toLowerCase().includes('fetch')) {
+        message =
+          'Registrasi gagal. Server autentikasi tidak dapat dihubungi (Failed to fetch). Pastikan koneksi internet stabil dan variabel NEXT_PUBLIC_SUPABASE_URL sudah aktif di Vercel.';
+      }
       setError(message);
     } finally {
       setLoading(false);

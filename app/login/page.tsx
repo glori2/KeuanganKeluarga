@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -18,6 +18,15 @@ export default function LoginPage() {
     setLoading(true);
     setError('');
 
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+    if (!supabaseUrl || supabaseUrl.includes('placeholder.supabase.co')) {
+      setError(
+        'Konfigurasi server belum lengkap: NEXT_PUBLIC_SUPABASE_URL belum disetel di Vercel. Silakan tambahkan Environment Variable di Vercel Dashboard lalu Redeploy.'
+      );
+      setLoading(false);
+      return;
+    }
+
     try {
       const { error: authErr } = await supabase.auth.signInWithPassword({
         email,
@@ -31,7 +40,11 @@ export default function LoginPage() {
       router.push('/');
       router.refresh();
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Gagal masuk. Periksa email dan password Anda.';
+      let message = err instanceof Error ? err.message : 'Gagal masuk. Periksa email dan password Anda.';
+      if (message === 'Failed to fetch' || message.toLowerCase().includes('fetch')) {
+        message =
+          'Gagal masuk. Server autentikasi tidak dapat dihubungi (Failed to fetch). Pastikan koneksi internet stabil dan variabel NEXT_PUBLIC_SUPABASE_URL sudah aktif di Vercel.';
+      }
       setError(message);
     } finally {
       setLoading(false);
