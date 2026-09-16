@@ -37,8 +37,7 @@ export default function LoginPage() {
         throw authErr;
       }
 
-      router.push('/');
-      router.refresh();
+      router.replace('/');
     } catch (err: unknown) {
       let message = err instanceof Error ? err.message : 'Gagal masuk. Periksa email dan password Anda.';
       if (message === 'Failed to fetch' || message.toLowerCase().includes('fetch')) {

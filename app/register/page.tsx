@@ -111,8 +111,7 @@ export default function RegisterPage() {
         throw new Error(errorMsg);
       }
 
-      router.push('/');
-      router.refresh();
+      router.replace('/');
     } catch (err: unknown) {
       let message = err instanceof Error ? err.message : 'Terjadi kesalahan saat pendaftaran.';
       if (message === 'Failed to fetch' || message.toLowerCase().includes('fetch')) {

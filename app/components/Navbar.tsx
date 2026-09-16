@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useState } from 'react';
 import Link from 'next/link';
@@ -20,8 +20,7 @@ export default function Navbar() {
     const { createClient } = await import('../lib/supabase/client');
     const supabase = createClient();
     await supabase.auth.signOut();
-    router.push('/login');
-    router.refresh();
+    router.replace('/login');
   };
 
   return (
