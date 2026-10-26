@@ -21,7 +21,7 @@ export default function AutoLogout() {
   const supabase = createClient();
   const [showWarning, setShowWarning] = useState(false);
   
-  const lastActivityRef = useRef<number>(Date.now());
+  const lastActivityRef = useRef<number>(0);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const isAuthenticatedRef = useRef<boolean>(false);
 
@@ -29,6 +29,8 @@ export default function AutoLogout() {
   const isAuthPage = pathname?.startsWith('/login') || pathname?.startsWith('/register');
 
   useEffect(() => {
+    lastActivityRef.current = Date.now();
+
     // Determine initial state
     supabase.auth.getSession().then(({ data: { session } }) => {
       isAuthenticatedRef.current = !!session;
@@ -36,7 +38,7 @@ export default function AutoLogout() {
         lastActivityRef.current = Date.now();
         try {
           localStorage.setItem('last_activity', Date.now().toString());
-        } catch (e) {}
+        } catch {}
       }
     });
 
@@ -65,7 +67,7 @@ export default function AutoLogout() {
       lastActivityRef.current = now;
       try {
         localStorage.setItem('last_activity', now.toString());
-      } catch (e) {}
+      } catch {}
       
       if (showWarning) {
         setShowWarning(false);
@@ -94,7 +96,7 @@ export default function AutoLogout() {
             if (showWarning) setShowWarning(false);
           }
         }
-      } catch (e) {}
+      } catch {}
 
       const timeIdle = now - lastActivity;
 
